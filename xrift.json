@@ -1,0 +1,50 @@
+{
+  "world": {
+    "distDir": "./dist",
+    "title": "XRift RC World — VDO.Ninja Monitor",
+    "description": "VDO.NinjaのWebRTC映像を3Dモニターで受信するラジコンワールドです。",
+    "buildCommand": "npm run build",
+    "ignore": [
+      "**/.DS_Store",
+      "**/Thumbs.db",
+      "**/*.js.map",
+      "**/.gitkeep",
+      "**/index.html",
+      "**/__federation_shared_@react-three/drei-*.js",
+      "**/__federation_shared_@react-three/fiber-*.js",
+      "**/__federation_shared_@react-three/rapier-*.js",
+      "**/__federation_shared_@xrift/world-components-*.js",
+      "**/__federation_shared_three-*.js",
+      "**/__federation_shared_three/addons/**",
+      "**/__federation_shared_react-*.js",
+      "**/__federation_shared_react-dom-*.js",
+      "**/__federation_shared_react-dom/client-*.js",
+      "**/__federation_shared_react/jsx-runtime-*.js",
+      "**/rapier.es-*.js"
+    ],
+    "physics": {
+      "gravity": 9.81,
+      "allowInfiniteJump": true
+    },
+    "camera": {
+      "near": 0.1,
+      "far": 1000,
+      "position": [0, 1.6, 4.8],
+      "fov": 55
+    },
+    "permissions": {
+      "allowedDomains": [
+        "localhost",
+        "127.0.0.1",
+        "vdo.ninja",
+        "*.vdo.ninja",
+        "wss.vdo.ninja",
+        "turnservers.vdo.ninja",
+        "*.obs.ninja",
+        "stun.l.google.com",
+        "stun.cloudflare.com"
+      ],
+      "allowedCodeRules": ["no-network-without-permission"]
+    }
+  }
+}
