@@ -25,7 +25,7 @@ type ControlSource = 'W' | 'A' | 'S' | 'D' | 'W+A' | 'W+D' | 'S+A' | 'S+D' | 'ã‚
 
 const STOP_COMMAND: MotorCommand = { left: 0, right: 0 }
 
-const DEFAULT_RC_WS_URL = 'ws://localhost:4000/ws'
+const DEFAULT_RC_WS_URL = 'wss://rc.ymnbuild.org/ws'
 
 interface VdoViewerConfig {
   streamId: string

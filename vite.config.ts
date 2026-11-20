@@ -5,10 +5,27 @@ import dts from 'vite-plugin-dts'
 import federation from '@originjs/vite-plugin-federation'
 import { xriftDev } from '@xrift/sdk/vite'
 
+const vdoNinjaStorageShim = () => ({
+  name: 'xrift-vdo-ninja-storage-shim',
+  enforce: 'pre' as const,
+  transform(code: string, id: string) {
+    if (!id.includes('/node_modules/@vdoninja/sdk/')) return null
+
+    const patchedCode = code.replace(/\blocalStorage\b/g, '__xriftVdoMemoryStorage')
+    if (patchedCode === code) return null
+
+    return {
+      code: `const __xriftVdoMemoryStorage = { getItem: () => null, setItem: () => {}, removeItem: () => {} }\n${patchedCode}`,
+      map: null,
+    }
+  },
+})
+
 export default defineConfig({
   plugins: [
     react(),
     xriftDev(),
+    vdoNinjaStorageShim(),
     dts({ insertTypesEntry: true }),
     federation({
       name: 'xrift_rc_world',

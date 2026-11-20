@@ -36,4 +36,10 @@ npm run typecheck
 npm run build
 ```
 
-WS接続先は`VITE_RC_WS_URL`で変更できます。未設定時は`ws://localhost:4000/ws`です。
+WS接続先は`VITE_RC_WS_URL`で変更できます。未設定時はCloud Runの`wss://rc.ymnbuild.org/ws`へ接続します。
+
+ローカルのWSサーバーへ接続する場合は、次のように指定します。
+
+```bash
+VITE_RC_WS_URL=ws://localhost:4000/ws npm run dev
+```
