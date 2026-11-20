@@ -26,6 +26,12 @@ type ControlSource = 'W' | 'A' | 'S' | 'D' | 'W+A' | 'W+D' | 'S+A' | 'S+D' | '�
 const STOP_COMMAND: MotorCommand = { left: 0, right: 0 }
 
 const DEFAULT_RC_WS_URL = 'wss://rc.ymnbuild.org/ws'
+const VDO_VIEW_SET_EVENT = 'rc-vdo-view-set'
+
+interface VdoViewEventDetail {
+  url: string
+  broadcast: boolean
+}
 
 interface VdoViewerConfig {
   streamId: string
@@ -62,6 +68,7 @@ function RcCarControlPanel() {
   const cursorCommandRef = useRef<MotorCommand | null>(null)
   const lastSeatCommandRef = useRef<MotorCommand>(STOP_COMMAND)
   const lastSentCommandRef = useRef<MotorCommand>(STOP_COMMAND)
+  const pendingVdoViewRef = useRef<string | null>(null)
 
   const applyCommand = useCallback((command: MotorCommand, source: ControlSource) => {
     const socket = socketRef.current
@@ -108,6 +115,22 @@ function RcCarControlPanel() {
   }, [stopMotors])
 
   useEffect(() => {
+    const handleVdoViewSet = (event: Event) => {
+      const detail = (event as CustomEvent<VdoViewEventDetail>).detail
+      if (!detail?.broadcast || typeof detail.url !== 'string') return
+
+      pendingVdoViewRef.current = detail.url.trim()
+      const socket = socketRef.current
+      if (socket?.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'vdo_view_set', url: pendingVdoViewRef.current }))
+      }
+    }
+
+    window.addEventListener(VDO_VIEW_SET_EVENT, handleVdoViewSet)
+    return () => window.removeEventListener(VDO_VIEW_SET_EVENT, handleVdoViewSet)
+  }, [])
+
+  useEffect(() => {
     let disposed = false
     const socket = new WebSocket(wsUrl)
     socketRef.current = socket
@@ -120,6 +143,9 @@ function RcCarControlPanel() {
       lastSentCommandRef.current = STOP_COMMAND
       lastSeatCommandRef.current = STOP_COMMAND
       socket.send(JSON.stringify({ type: 'hello', role: 'xrift' }))
+      if (pendingVdoViewRef.current !== null) {
+        socket.send(JSON.stringify({ type: 'vdo_view_set', url: pendingVdoViewRef.current }))
+      }
     }
 
     socket.onmessage = (event) => {
@@ -139,6 +165,11 @@ function RcCarControlPanel() {
           && isMotorDirection(message.right)
         ) {
           setMotorCommand({ left: message.left, right: message.right })
+        }
+        if (message.type === 'vdo_view_set' && typeof message.url === 'string') {
+          window.dispatchEvent(new CustomEvent<VdoViewEventDetail>(VDO_VIEW_SET_EVENT, {
+            detail: { url: message.url, broadcast: false },
+          }))
         }
         if (message.type === 'error' && typeof message.code === 'string') {
           setError(message.code)
@@ -524,16 +555,20 @@ function Lighting() {
 
 function VdoNinjaReceiver() {
   const [url, setUrl] = useState(() => new URLSearchParams(window.location.search).get('rcView') ?? '')
+  const urlRef = useRef('')
   const [status, setStatus] = useState<ReceiverStatus>('idle')
   const [error, setError] = useState('')
   const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null)
   const sdkRef = useRef<VDONinjaSDK | null>(null)
   const streamIdRef = useRef<string | null>(null)
   const sessionRef = useRef(0)
+  const autoConnectRef = useRef(false)
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const videoElementRef = useRef<HTMLVideoElement | null>(null)
   const activeTextureRef = useRef<VideoTexture | null>(null)
   const monitorMaterialRef = useRef<MeshBasicMaterial | null>(null)
+
+  urlRef.current = url
 
   const videoTexture = useMemo(() => {
     if (!videoElement) return null
@@ -586,6 +621,23 @@ function VdoNinjaReceiver() {
     setStatus('idle')
     setError('')
   }, [])
+
+  useEffect(() => {
+    const handleSharedViewSet = (event: Event) => {
+      const detail = (event as CustomEvent<VdoViewEventDetail>).detail
+      if (!detail || detail.broadcast || typeof detail.url !== 'string') return
+
+      const nextUrl = detail.url.trim()
+      if (nextUrl === urlRef.current.trim()) return
+
+      stop()
+      autoConnectRef.current = false
+      setUrl(nextUrl)
+    }
+
+    window.addEventListener(VDO_VIEW_SET_EVENT, handleSharedViewSet)
+    return () => window.removeEventListener(VDO_VIEW_SET_EVENT, handleSharedViewSet)
+  }, [stop])
 
   const connect = useCallback(async () => {
     let config: VdoViewerConfig
@@ -697,7 +749,18 @@ function VdoNinjaReceiver() {
     }
   }, [url])
 
-  const autoConnectRef = useRef(false)
+  const submitViewUrl = useCallback((value: string) => {
+    const nextUrl = value.trim()
+    if (nextUrl !== urlRef.current.trim()) {
+      stop()
+      autoConnectRef.current = false
+      setUrl(nextUrl)
+    }
+    window.dispatchEvent(new CustomEvent<VdoViewEventDetail>(VDO_VIEW_SET_EVENT, {
+      detail: { url: nextUrl, broadcast: true },
+    }))
+  }, [stop])
+
   useEffect(() => {
     if (url && !autoConnectRef.current) {
       autoConnectRef.current = true
@@ -777,7 +840,7 @@ function VdoNinjaReceiver() {
           placeholder="https://vdo.ninja/?view=..."
           maxLength={2048}
           value={url}
-          onSubmit={(value) => setUrl(value.trim())}
+          onSubmit={submitViewUrl}
           interactionText="視聴URLを入力"
         >
           <group position={[0, -0.12, 0.025]}>
