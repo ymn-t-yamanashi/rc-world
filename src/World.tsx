@@ -58,6 +58,7 @@ function RcCarControlPanel() {
   const [motorCommand, setMotorCommand] = useState<MotorCommand>(STOP_COMMAND)
   const [controlSource, setControlSource] = useState<ControlSource>('停止')
   const [error, setError] = useState('')
+  const [reconnectToken, setReconnectToken] = useState(0)
   const cursorCommandRef = useRef<MotorCommand | null>(null)
   const lastSeatCommandRef = useRef<MotorCommand>(STOP_COMMAND)
   const lastSentCommandRef = useRef<MotorCommand>(STOP_COMMAND)
@@ -97,6 +98,14 @@ function RcCarControlPanel() {
     setMotorCommand(STOP_COMMAND)
     setControlSource(source)
   }, [])
+
+  const reconnectWebSocket = useCallback(() => {
+    stopMotors()
+    setConnectionStatus('connecting')
+    setDeviceConnected(false)
+    setError('')
+    setReconnectToken((token) => token + 1)
+  }, [stopMotors])
 
   useEffect(() => {
     let disposed = false
@@ -159,7 +168,7 @@ function RcCarControlPanel() {
       }
       if (socketRef.current === socket) socketRef.current = null
     }
-  }, [stopMotors, wsUrl])
+  }, [reconnectToken, stopMotors, wsUrl])
 
   const handleSeatEnter = useCallback((occupant: SeatOccupant) => {
     if (!occupant.isLocalUser) return
@@ -274,6 +283,15 @@ function RcCarControlPanel() {
       >
         車体: {deviceConnected ? '接続' : '未接続'}　着席: {seated ? '操作可能' : '座ってください'}
       </Text>
+      <DriveButton
+        id="rc-car-ws-reconnect"
+        label="再接続"
+        position={[0.82, 0.58, 0.05]}
+        enabled
+        active={connectionStatus === 'connecting'}
+        interactionText="WSを再接続"
+        onInteract={reconnectWebSocket}
+      />
       <Text
         position={[0, 0.23, 0.02]}
         fontSize={0.13}
