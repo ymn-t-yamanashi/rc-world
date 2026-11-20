@@ -308,9 +308,9 @@ function RcCarControlPanel() {
         label="A"
         position={[-0.56, -0.68, 0.05]}
         enabled={seated && connectionStatus === 'connected' && deviceConnected}
-        active={motorCommand.left === -1 && motorCommand.right === 1}
+        active={motorCommand.left === 1 && motorCommand.right === -1}
         interactionText="左旋回"
-        onInteract={() => setCursorCommand({ left: -1, right: 1 })}
+        onInteract={() => setCursorCommand({ left: 1, right: -1 })}
       />
       <DriveButton
         id="rc-car-drive-back"
@@ -326,9 +326,9 @@ function RcCarControlPanel() {
         label="D"
         position={[0.56, -0.68, 0.05]}
         enabled={seated && connectionStatus === 'connected' && deviceConnected}
-        active={motorCommand.left === 1 && motorCommand.right === -1}
+        active={motorCommand.left === -1 && motorCommand.right === 1}
         interactionText="右旋回"
-        onInteract={() => setCursorCommand({ left: 1, right: -1 })}
+        onInteract={() => setCursorCommand({ left: -1, right: 1 })}
       />
       <DriveButton
         id="rc-car-drive-stop"
@@ -417,8 +417,8 @@ function commandFromSeatInput(input: SeatControlInput): MotorCommand {
   const forward = input.forward > 0.25 ? 1 : input.forward < -0.25 ? -1 : 0
   const right = input.right > 0.25 ? 1 : input.right < -0.25 ? -1 : 0
   return {
-    left: directionValue(forward + right),
-    right: directionValue(forward - right),
+    left: directionValue(forward - right),
+    right: directionValue(forward + right),
   }
 }
 
@@ -443,8 +443,8 @@ function describeCommand(command: MotorCommand) {
   if (command.left === 0 && command.right === 0) return '停止'
   if (command.left === 1 && command.right === 1) return '前進'
   if (command.left === -1 && command.right === -1) return '後退'
-  if (command.left === -1 && command.right === 1) return '左旋回'
-  if (command.left === 1 && command.right === -1) return '右旋回'
+  if (command.left === 1 && command.right === -1) return '左旋回'
+  if (command.left === -1 && command.right === 1) return '右旋回'
   return '方向調整'
 }
 
